@@ -1,0 +1,73 @@
+const int a0 = 12 ,a12=5;
+const char b1 = 't' ;
+int weight [ 100 ] ;
+int f1(){
+	return(21);
+}
+void f0 ( int n ) {
+	if ( n > 20 ) {
+		return;
+	}
+	printf(n);
+	f1(n+1);
+	return;
+}
+char f2(char word){
+	if(word=='x'){
+		return('y');
+	}
+	return('n');
+}
+void main()
+{	
+	int a,b;
+	int n;
+	char c_d,e5_3fg4h,x,p;
+
+	a=4;
+	b=2;
+	if(b<0){
+		b=-1*b;
+	}
+	if(b<=a){
+		b=0;
+		printf("come in\n");
+	}
+	if(b>a){
+		b=1;
+	}
+	switch(b){
+		case 0:b=0;
+		case 1:b=1;
+	}
+	printf(b);
+	b=1-b;
+	switch(b){
+		case 0:b=11;
+		case 1:b=666;
+	}
+	printf(b);
+	f0(12);
+	a=f1();
+	printf(a);
+	p=f2(e5_3fg4h);
+	if(p=='n'){
+		printf(a+1);
+	}
+	switch(p){
+		case 'n':printf(a+1);
+		case 'y':printf(a+2);
+	}
+	p=f2(x);
+	switch(p){
+		case 'n':printf(a+1);
+		case 'y':printf(a+2);
+	}
+	weight[15]=12;
+	weight[14]=weight[15]*2;
+	printf(weight[14]+weight[15]);
+	printf(27+-2);
+	printf(++26);
+	printf(--27);
+	return;
+ }

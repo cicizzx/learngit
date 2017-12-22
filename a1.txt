@@ -1,0 +1,111 @@
+const int const_1=0,ERROR=0;
+const char const_2='h';
+int a,array[52];
+char b,carray[52];
+
+int foo1(int f)
+{
+	if(f<=0)
+		return (ERROR);
+		
+	if(f==1)
+		return (f);
+		
+	return (f*foo1(f-1));
+}
+
+void foo2()
+{
+	int b;
+	b=0;
+	
+	switch(b){
+		case 0:do{
+			b=+b+'0';
+			printf("%d",b);}
+		while(b<3)
+	}
+	
+	return ;
+}
+
+char foo3(char a,int b)
+{
+	printf("foo3:");
+	
+	return (a+b);	
+}
+
+void main()
+{
+	const int const_3;
+	const char const_4; 
+	char var[5];
+	int m,n;
+	
+	var[0]='6';
+	var[1]='6';
+	array[0]=10;
+	
+	scanf(m);
+	
+	switch(m){
+		case -1 : ;
+		case 0 : printf(m);
+		case 1 : printf("hhhh");
+		case 2 : printf("2333");
+	}
+	
+	m=0;
+	if(m==0){
+		printf("m=0");
+		if(m!=1)
+			a=-5+m/3+4*(m+foo1(5))+array[0];
+		printf((-5+m/3+4*(m+foo1(5))+array[0]));
+		
+		if(m<foo1(1))
+			m=array[0]+10;
+		printf("%d",m);
+		
+		if(m<=20)
+			array[1]=array[0]+foo1(0); 
+		printf("%d",array[1]);
+		
+		if(m>0)
+			do{
+				m=m-1;
+			}while(m>0);
+			
+		if(m>=0){
+			foo2();
+		}		
+	}
+	
+	if(m)
+		m=0;
+		
+	do{
+		carray[m]='a'+m;
+	}while(m<26)
+	
+	m=+(const_1)*8/const_2;		
+	do{
+		array[m]=foo1(2)*foo1(3)+const_1*(m+3);
+		
+		switch(m){
+			case 5:array[m]=23;
+			case 15:arr[m]=foo1(m-4);
+		}		
+		m=m+1;		
+	}while(m<52)
+	
+	printf("%c",foo3('f',2));
+	printf(+2-30*89);
+	printf(++99);
+	printf(m+foo1(4));
+	printf(4+-5);
+	printf(foo3('t',1));
+	printf(3+foo3('c',-1));
+	
+	return;
+}
