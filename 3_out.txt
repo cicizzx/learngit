@@ -1,0 +1,41 @@
+测试样例 1
+输入:
+A E 10 (其中A E 是字符 10是数字)
+输出如下:
+Please input Test Type:E(Easy), (M)Middle, H(Hard): A
+Try Again: E
+1
+/
+define test passed
+operator test passed
+Fibonaci: Please input a unsigned positive integer ?-1
+Input error, try again:10
+The fibonaci's answer is 55
+
+测试样例 2
+M 24 15 (其中M是字符 24 15是数字)
+输出如下:
+Please input Test Type:E(Easy), (M)Middle, H(Hard): M
+dowhile test passed
+condition test passed
+ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz
+!#$%&'()*+,-./:;<=>?@[]^_`{|}~
+GCD: Please input two unsigned positive integer ?24
+15
+The gcd's answer is 3
+
+测试样例 3
+H 1026 (其中H是字符 1026是数字)
+输出如下:
+Please input Test Type:E(Easy), (M)Middle, H(Hard): H
+1
+/
+define test passed
+operator test passed
+dowhile test passed
+condition test passed
+ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz
+!#$%&'()*+,-./:;<=>?@[]^_`{|}~
+miscellaneous test passed
+prime_factorization: Please input a unsigned positive integer(<2^31-1) ?1026
+The factor of n is 2*3*3*3*19

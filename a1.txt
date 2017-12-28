@@ -22,7 +22,8 @@ void foo2()
 	switch(b){
 		case 0:do{
 			b=+b+'0';
-			printf("%d",b);}
+			printf("foo2:",b);
+			printf("\n");}
 		while(b<3)
 	}
 	
@@ -31,7 +32,7 @@ void foo2()
 
 char foo3(char a,int b)
 {
-	printf("foo3:");
+	printf("foo3:\n");
 	
 	return (a+b);	
 }
@@ -58,19 +59,19 @@ void main()
 	
 	m=0;
 	if(m==0){
-		printf("m=0");
+		printf("m=0\n");
 		if(m!=1)
 			a=-5+m/3+4*(m+foo1(5))+array[0];
-		printf((-5+m/3+4*(m+foo1(5))+array[0]));
-		
+		printf(a);
+		printf("\n");
 		if(m<foo1(1))
 			m=array[0]+10;
-		printf("%d",m);
-		
+		printf(m);
+		printf("\n");
 		if(m<=20)
 			array[1]=array[0]+foo1(0); 
-		printf("%d",array[1]);
-		
+		printf(array[1]);
+		printf("\n");
 		if(m>0)
 			do{
 				m=m-1;
@@ -78,6 +79,7 @@ void main()
 			
 		if(m>=0){
 			foo2();
+			printf("foo2 out\n");
 		}		
 	}
 	
@@ -86,26 +88,29 @@ void main()
 		
 	do{
 		carray[m]='a'+m;
+		m=m+1;
+		printf(carray[m-1]);
+		
 	}while(m<26)
-	
+	printf("\n");
 	m=+(const_1)*8/const_2;		
 	do{
 		array[m]=foo1(2)*foo1(3)+const_1*(m+3);
 		
 		switch(m){
 			case 5:array[m]=23;
-			case 15:arr[m]=foo1(m-4);
+			case 15:array[m]=foo1(m-4);
 		}		
 		m=m+1;		
 	}while(m<52)
 	
-	printf("%c",foo3('f',2));
-	printf(+2-30*89);
-	printf(++99);
-	printf(m+foo1(4));
-	printf(4+-5);
-	printf(foo3('t',1));
-	printf(3+foo3('c',-1));
-	
+	printf(foo3('f',2));printf("\n");
+	printf(+2-30*89);printf("\n");
+	printf(++99);printf("\n");
+	printf(m+foo1(4));printf("\n");
+	printf(4+-5);printf("\n");
+	printf(foo3('t',1));printf("\n");
+	printf(3+foo3('c',-1));printf("\n");
+	printf("end");
 	return;
 }

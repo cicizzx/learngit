@@ -12,7 +12,8 @@ extern char token[];
 extern struct tb table[];
 extern FILE *fa;
 extern char now_func[];
-int off=0,ifnum=0,donum=0,casenum=0,switchnum=0,offset=0;
+extern int expnum;
+int ifnum=0,donum=0,casenum=0,switchnum=0,offset=0,expchar=1;
 char all[]="static";
 
 //£¼³ÌÐò£¾    ::= £Û£¼³£Á¿ËµÃ÷£¾£Ý£Û£¼±äÁ¿ËµÃ÷£¾£Ý{£¼ÓÐ·µ»ØÖµº¯Êý¶¨Òå£¾|£¼ÎÞ·µ»ØÖµº¯Êý¶¨Òå£¾}£¼Ö÷º¯Êý£¾
@@ -34,13 +35,15 @@ void program()
 		}
 	if(!text){
 		text=1;
-		fprintf(fa,"static:	.space %d\n",off*4);
-		fprintf(fa,"exp:	.space 512\n");
+		fprintf(fa,"static:	.space %d\n",offset);
+		fprintf(fa,"ret:	.space 512\n");
+		fprintf(fa,"exp:	.space 10240\n");
 		fprintf(fa,"stack:	.space 512\n");
 		fprintf(fa,".text\n");
 		fprintf(fa,"la $sp,stack\n");
 		fprintf(fa,"la $fp,stack\n");
-		four(CALL,"main","","");
+		fprintf(fa,"li $17,-4\n");
+		four(CALLUSE,"main","","");
 		fprintf(fa,"li $v0 10\n");
 		fprintf(fa,"syscall\n");
 
@@ -93,7 +96,7 @@ void var_or_func()
 			//ÓÐ·µ»ØÖµº¯Êý 
 			if(tmp==LPARENT){
 				//output(DEF_VALFUNC);
-				def_func(name,isint);
+				def_func(name,(isint?INTTK:CHARTK));
 				
 			}
 			
@@ -103,8 +106,8 @@ void var_or_func()
 				switch(token[0]){
 					case('['):
 						if(read()==INTCON){
-							if(seek(name,all)==NOTFOUND) {
-								entertablearray(ARRAY_VARIABLE,name,off,(isint?INTTK:CHARTK),all,atoi(token));
+							if(check(name,all)==NOTFOUND) {
+								entertablearray(ARRAY_VARIABLE,name,offset,(isint?INTTK:CHARTK),all,atoi(token));
 								offset=offset+atoi(token)*4;
 							}
 								
@@ -121,8 +124,8 @@ void var_or_func()
 											strcpy(name,token);											
 											read();
 											if(token[0]==','){
-												if(seek(name,all)==NOTFOUND) {
-													entertable(SIMPLE_VARIABLE,name,off,(isint?INTTK:CHARTK),all);
+												if(check(name,all)==NOTFOUND) {
+													entertable(SIMPLE_VARIABLE,name,offset,(isint?INTTK:CHARTK),all);
 													offset=offset+4;
 												}
 												else{
@@ -133,15 +136,15 @@ void var_or_func()
 											} 
 											else if(token[0]=='['){
 												if((read())==INTCON){
-													if(seek(name,all)==NOTFOUND) {
-														entertablearray(ARRAY_VARIABLE,name,off,(isint?INTTK:CHARTK),all,atoi(token));
+													if(check(name,all)==NOTFOUND) {
+														entertablearray(ARRAY_VARIABLE,name,offset,(isint?INTTK:CHARTK),all,atoi(token));
 														offset=offset+atoi(token)*4;
 													}
 														
 													else{
 														error(RE_DECLARATION);
 													}
-													
+													read();
 													if(token[0]==']'){
 														read();
 														if(token[0]==','){
@@ -171,15 +174,15 @@ void var_or_func()
 						}
 						break;
 					case(','):
-						entertable(SIMPLE_VARIABLE,name,off,(isint?INTTK:CHARTK),all);
+						entertable(SIMPLE_VARIABLE,name,offset,(isint?INTTK:CHARTK),all);
 						offset=offset+4;
 							do{
 								if(read()==IDEN){
 									strcpy(name,token);
 									read();
 									if(token[0]==','){
-										if(seek(name,all)==NOTFOUND) {
-											entertable(SIMPLE_VARIABLE,name,off,(isint?INTTK:CHARTK),all);
+										if(check(name,all)==NOTFOUND) {
+											entertable(SIMPLE_VARIABLE,name,offset,(isint?INTTK:CHARTK),all);
 											offset=offset+4;
 										}
 										else{
@@ -190,8 +193,8 @@ void var_or_func()
 									} 
 									else if(token[0]=='['){
 										if(read()==INTCON){
-											if(seek(name,all)==NOTFOUND) {
-												entertablearray(ARRAY_VARIABLE,name,off,(isint?INTTK:CHARTK),all,atoi(token));
+											if(check(name,all)==NOTFOUND) {
+												entertablearray(ARRAY_VARIABLE,name,offset,(isint?INTTK:CHARTK),all,atoi(token));
 												offset=offset+atoi(token)*4;
 											}
 												
@@ -260,7 +263,7 @@ void def_const(char area[])
 				strcpy(name,token);				
 				if(read()==ASSIGN){
 					positive=integer();
-					if(seek(name,area)==NOTFOUND) 
+					if(check(name,area)==NOTFOUND) 
 						entertable(CONSTANT,name,positive*atoi(token),INTTK,area);
 					else{
 						error(RE_DECLARATION);
@@ -276,7 +279,7 @@ void def_const(char area[])
 				strcpy(name,token);
 				if(read()==ASSIGN){
 					if(read()==CHARCON){
-						if(seek(name,area)==NOTFOUND) 
+						if(check(name,area)==NOTFOUND) 
 							entertable(CONSTANT,name,token[1],CHARTK,area);
 						else{
 							error(RE_DECLARATION);
@@ -305,7 +308,7 @@ void def_const(char area[])
 							if(read()==IDEN){
 								if(read()==ASSIGN){
 									positive=integer();
-									if(seek(name,area)==NOTFOUND) 
+									if(check(name,area)==NOTFOUND) 
 										entertable(CONSTANT,name,positive*atoi(token),INTTK,area);
 									else{
 										error(RE_DECLARATION);
@@ -323,7 +326,7 @@ void def_const(char area[])
 							if(read()==IDEN){
 								if(read()==ASSIGN){
 									positive=integer();
-									if(seek(name,area)==NOTFOUND) 
+									if(check(name,area)==NOTFOUND) 
 										entertable(CONSTANT,name,positive*atoi(token),INTTK,area);
 									else{
 										error(RE_DECLARATION);
@@ -340,7 +343,7 @@ void def_const(char area[])
 							if(read()==IDEN){
 								if(read()==ASSIGN){
 									if(read()==CHARCON){
-										if(seek(name,area)==NOTFOUND) 
+										if(check(name,area)==NOTFOUND) 
 											entertable(CONSTANT,name,token[1],CHARTK,area);
 										else{
 											error(RE_DECLARATION);
@@ -398,7 +401,7 @@ void def_var(char area[],int *offfun)
 				strcpy(name,token);
 				read();
 				if(token[0]==','){
-					if(seek(name,area)==NOTFOUND){
+					if(check(name,area)==NOTFOUND){
 						entertable(SIMPLE_VARIABLE,name,*offfun,(isint?INTTK:CHARTK),area);
 						*offfun+=4;
 					}
@@ -410,7 +413,7 @@ void def_var(char area[],int *offfun)
 				} 
 				else if(token[0]=='['){
 					if(read()==INTCON){
-						if(seek(name,area)==NOTFOUND){
+						if(check(name,area)==NOTFOUND){
 							entertablearray(ARRAY_VARIABLE,name,*offfun,(isint?INTTK:CHARTK),area,atoi(token));
 							*offfun=*offfun+atoi(token)*4;
 						}
@@ -431,7 +434,7 @@ void def_var(char area[],int *offfun)
 					}
 				}
 				else if(token[0]==';'){
-					if(seek(name,area)==NOTFOUND){
+					if(check(name,area)==NOTFOUND){
 						entertable(SIMPLE_VARIABLE,name,*offfun,(isint?INTTK:CHARTK),area);
 						*offfun+=4;
 					}
@@ -450,29 +453,26 @@ void def_var(char area[],int *offfun)
 void def_func(char name[],int type) 
 {
 	int para1=tptr+1;
-	int offfun=16;
+	int offfun=8;
 	int paranum=para_table(name,&offfun);	
 	strcpy(now_func,name);
 	if(!text){
 		text=1;
-		fprintf(fa,"static:	.space %d\n",off*4);
-		fprintf(fa,"exp:	.space 512\n");
+		fprintf(fa,"static:	.space %d\n",offset);
+		fprintf(fa,"ret:	.space 1024\n");
+		fprintf(fa,"exp:	.space 10240\n");
 		fprintf(fa,"stack:	.space 512\n");
 		fprintf(fa,".text\n");
 		fprintf(fa,"la $sp,stack\n");
 		fprintf(fa,"la $fp,stack\n");
-		four(CALL,"main","","");
+		fprintf(fa,"li $17,-4\n");
+		four(CALLUSE,"main","","");
 		fprintf(fa,"li $v0 10\n");
 		fprintf(fa,"syscall\n");
 
 	}
 	four(LABEL,name,"","");
-	fprintf(fa,"sw $ra,4($fp)\n");//return address
-	fprintf(fa,"sw $v0,8($fp)\n");
-	fprintf(fa,"sw $sp,12($fp)\n");
-	fprintf(fa,"addi $sp,$fp,4\n");
-	fprintf(fa,"addi $fp,$fp,%d\n",fp_offset(name));
-	if(seek(name,all)==NOTFOUND){
+	if(check(name,all)==NOTFOUND){
 
 		entertablefun(type,name,paranum,para1);
 		entertable(FUNCTION,name,0,type,all);
@@ -487,9 +487,9 @@ void def_func(char name[],int type)
 		if(token[0]=='{'){
 			com_state(name,&offfun);
 		}
-		if(read()==RBRACE)	;//poptable(name);
+		if(read()==RBRACE)	;
 	}
-	
+	four(RETURN,"","","");
 	//over
 }
 //£¼¸´ºÏÓï¾ä£¾   ::=  £Û£¼³£Á¿ËµÃ÷£¾£Ý£Û£¼±äÁ¿ËµÃ÷£¾£Ý£¼Óï¾äÁÐ£¾
@@ -503,6 +503,11 @@ void com_state(char area[],int *offfun)
 	if(tmp==INTTK||tmp==CHARTK){
 		var_state(area,offfun);			
 		}
+	fprintf(fa,"subi $fp,$fp,%d\n",sp_offset(area)+8);
+	fprintf(fa,"sw $ra,0($fp)\n");//return address
+	fprintf(fa,"sw $sp,4($fp)\n");
+	fprintf(fa,"move $sp,$fp\n");
+	fprintf(fa,"addi $fp,$fp,%d\n",fp_offset(area)+8);
 	statements(area); 
 	
 }
@@ -517,9 +522,9 @@ int para_table(char func[],int *offfun)
 			type=tmp;
 			read();			
 			if(tmp==IDEN){
-				if(seek(token,func)==NOTFOUND){
+				if(check(token,func)==NOTFOUND){
 					entertable(PARAMETER,token,*offfun,type,func);
-					offfun+=4;}
+					(*offfun)+=4;}
 				else{
 					error(RE_DECLARATION);
 				} 
@@ -534,14 +539,9 @@ int para_table(char func[],int *offfun)
 //£¼Ö÷º¯Êý£¾    ::= void main¡®(¡¯¡®)¡¯ ¡®{¡¯£¼¸´ºÏÓï¾ä£¾¡®}¡¯
 void main_func()
 {
-	int offfun=16;
+	int offfun=8;
 	strcpy(now_func,"main");
 	four(LABEL,"main","","");
-	fprintf(fa,"sw $ra,4($fp)\n");//return address
-	fprintf(fa,"sw $v0,8($fp)\n");
-	fprintf(fa,"sw $sp,12($fp)\n");
-	fprintf(fa,"addi $sp,$fp,4\n");
-	fprintf(fa,"addi $fp,$fp,%d\n",fp_offset("main"));
 	if(read()==LPARENT){
 		if(read()==RPARENT){
 			if(read()==LBRACE){
@@ -550,13 +550,15 @@ void main_func()
 			}
 		}
 	}
+	four(RETURN,"","","");
 }
-//£¼±í´ïÊ½£¾    ::= £Û£«£ü£­£Ý£¼Ïî£¾{£¼¼Ó·¨ÔËËã·û£¾£¼Ïî£¾}error Õý¸º¿ÉÄÜ²»ÄÜ´¦Àí¡­¡­ËÄÔªÊ½ÀïÃæ 
+//£¼±í´ïÊ½£¾    ::= £Û£«£ü£­£Ý£¼Ïî£¾{£¼¼Ó·¨ÔËËã·û£¾£¼Ïî£¾}
 //°Ñ±í´ïÊ½µÄÃ¿¸ö²Ù×÷·ûºÍ²Ù×÷Êý·Ö¿ª´¢´æµ½expÀï 
 char* expression(char func[])
 {
 	char exp[1024][STRINGLENGTH]={0};
 	int e=0,i=0;
+	expchar=1;
 	if(tmp==PLUS||tmp==MINUS){
 		strcpy(exp[(e)++],token);
 		e--;
@@ -592,20 +594,27 @@ int term(char func[],char exp[][STRINGLENGTH],int *e)
 //				£¼ÓÐ·µ»ØÖµº¯Êýµ÷ÓÃÓï¾ä£¾|¡®(¡¯£¼±í´ïÊ½£¾¡®)¡¯
 int factor(char func[],char exp[][STRINGLENGTH],int *e)
 {
-	char name[STRINGLENGTH]={0};
+	int t,i;
+	char name[STRINGLENGTH]={0},funcname[STRINGLENGTH]={0};
+	
 	switch(tmp){
 		case(IDEN):
-			if(seek(token,func)!=NOTFOUND)
+			if((i=seek(token,func))!=NOTFOUND)
 				;
 			else error(WITHOUT_DECLARATION);
+			if(table[i].kind==INTTK&&expchar==1){
+				expchar=0;
+			}
 			strcpy(name,token);
+			strcpy(funcname,token);
 			read();
 			
 			if(tmp==LBRACK){//£¼±êÊ¶·û£¾¡®[¡¯£¼±í´ïÊ½£¾¡®]¡¯
 				strcat(name,token); 
 				read();
+				t=expchar;
 				strcat(name,expression(func));
-				//strcpy(exp[(*e)++],token);
+				expchar=t;
 				if(tmp==RBRACK){
 					strcat(name,token);
 					strcat(exp[(*e)++],name);
@@ -617,8 +626,12 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 						}
 			}
 			else if(tmp==LPARENT) {//£¼ÓÐ·µ»ØÖµº¯Êýµ÷ÓÃÓï¾ä£¾
-				strcat(name,token);
+				strcat(name,token);//×îºó¶àcopyÁËÒ»¸ö¡®£¨¡¯
+				t=expchar;
 				val_para(func,name);//yes
+				name[strlen(name)-2]=0;
+				four(CALLEXP,funcname,"","");
+				expchar=t;
 				if(tmp==RPARENT)	{
 					strcat(exp[(*e)++],name);
 					read();
@@ -636,6 +649,10 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 		case(PLUS)://ÕûÊý
 			strcpy(exp[(*e)],token);
 				if(read()==INTCON){
+					if (expchar==1)
+					{
+						expchar=0;
+					}
 					strcat(exp[(*e)++],token);
 				}
 			read();
@@ -644,33 +661,52 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 		case(MINUS)://ÕûÊý 
 			strcpy(exp[(*e)],token);
 				if(read()==INTCON){
+					if (expchar==1)
+					{
+						expchar=0;
+					}
 					strcat(exp[(*e)++],token);
 				}
 			read();
 			strcpy(exp[(*e)++],token);
 			break;
 		case(INTCON)://ÕûÊý 
+			if (expchar==1)
+			{
+				expchar=0;
+			}
 			strcat(exp[(*e)++],token);
 			read();
 			strcpy(exp[(*e)++],token);
 			break;
 		case(CHARCON):
+			if(expchar==1){
+				expchar=0;
+			}
 			strcpy(exp[(*e)++],token);
 			read();
 			strcpy(exp[(*e)++],token);
 			break;
 		case(LPARENT):
-			strcpy(name,token);
+			read();
+			strcpy(exp[(*e)++],expression(func));
+			if(tmp==RPARENT) {
+				read();
+				strcpy(exp[(*e)++],token);
+			}		    
+			else error(WRONG_EXPRESSION);
+			break;
+			/*strcpy(name,token);
 			read();
 			strcat(name,expression(func));
 			if(tmp==RPARENT) {
-				strcat(name,token);
-				strcpy(exp[(*e)++],name);
-				read();
-				strcpy(exp[(*e)++],token);
+			strcat(name,token);
+			strcpy(exp[(*e)++],name);
+			read();
+			strcpy(exp[(*e)++],token);
 
 			}		    
-			else error(WRONG_EXPRESSION);		
+			else error(WRONG_EXPRESSION);*/		
 			break;
 		default:
 			error(WRONG_EXPRESSION);
@@ -684,7 +720,8 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 					£ü£¼¶ÁÓï¾ä£¾;£ü£¼Ð´Óï¾ä£¾;£ü£¼¿Õ£¾;£ü£¼·µ»ØÓï¾ä£¾;*/
 void statement(char func[])
 {
-	char name[STRINGLENGTH];
+	char name[STRINGLENGTH]={0},funcname[STRINGLENGTH]={0};
+	//expnum=0;
 	switch(tmp){
 		case(IFTK):
 			if_state(func);
@@ -705,11 +742,13 @@ void statement(char func[])
 		case(IDEN)://assign,func
 			if(seek(token,func)==NOTFOUND)	error(WITHOUT_DECLARATION);
 			strcpy(name,token);
+			strcpy(funcname,token);
 			read();
 			if(tmp==ASSIGN||tmp==LBRACK)
 				assignment(func,name);
 			else if(tmp==LPARENT){
 				use_valfunc(func,name);
+				four(CALLUSE,funcname,"","");
 			}
 			break;
 		case(SCANFTK):
@@ -776,7 +815,7 @@ void if_state(char func[])
 { 
 
 	char a[STRINGLENGTH]={0};
-	itoa(ifnum,a,10);
+	itoa(ifnum++,a,10);
 	if(read()==LPARENT){
 		condition(func,labelname("ifEnd",a),labelname("ifStart",a));
 		four(LABEL,labelname("ifStart",a),"","");
@@ -788,7 +827,6 @@ void if_state(char func[])
 			error(PARENT_DISMATCH);
 			return;
 		}
-	ifnum++;
 }
 
 //Ìõ¼þ£¾    ::=  £¼±í´ïÊ½£¾£¼¹ØÏµÔËËã·û£¾£¼±í´ïÊ½£¾£ü£¼±í´ïÊ½£¾
@@ -828,6 +866,10 @@ void condition(char func[],char end[],char start[])
 				break;
 		}
 	}
+	else if (tmp==RPARENT)
+	{
+		four(PNEQ,"$10",src1,"0");
+	}
 	if(tmp==RPARENT){
 		four(BEQ,end,"$10",zero);
 		four(BNE,start,"$10",zero);
@@ -838,7 +880,7 @@ void condition(char func[],char end[],char start[])
 void do_while(char func[])
 {
 	char a[STRINGLENGTH]={0};//,b[STRINGLENGTH],c[STRINGLENGTH];
-	itoa(donum,a,10);
+	itoa(donum++,a,10);
 	
 	if(tmp==DOTK){
 		four(LABEL,labelname("doStart",a),"","");
@@ -851,7 +893,6 @@ void do_while(char func[])
 		}
 	}
 	four(LABEL,labelname("doEnd",a),"","");
-	donum++;
 }
 //£¼³£Á¿£¾   ::=  £¼ÕûÊý£¾|£¼×Ö·û£¾ 
 char* constant()
@@ -875,8 +916,7 @@ void switch_state(char func[])
 {
 	char exp[STRINGLENGTH]={0};
 	char a[STRINGLENGTH]={0},b[STRINGLENGTH];
-	itoa(switchnum,a,10);
-	//casenum=0;
+	itoa(switchnum++,a,10);
 	if(read()==LPARENT){
 		read();
 		strcpy(exp,expression(func));
@@ -891,7 +931,6 @@ void switch_state(char func[])
 	itoa(casenum++,b,10);
 	four(LABEL,labelname("case",b),"","");
 	four(LABEL,labelname("switchEnd",a),"","");
-	switchnum++;
 }
 //£¼Çé¿ö±í£¾   ::=  £¼Çé¿ö×ÓÓï¾ä£¾{£¼Çé¿ö×ÓÓï¾ä£¾}
 void case_list(char func[],char exp[],char end[])
@@ -909,17 +948,16 @@ void case_state(char func[],char exp[],char end[])
 {
 	char con[STRINGLENGTH];
 	char a[STRINGLENGTH]={0},b[STRINGLENGTH];
-	itoa(casenum,a,10);
+	itoa(casenum++,a,10);
 	four(LABEL,labelname("case",a),"","");
 	strcpy(con,constant());
-	itoa(casenum+1,b,10);
+	itoa(casenum,b,10);
 	four(BNE,labelname("case",b),con,exp);
 	if(read()==COLON){
 		read();
 		statement(func);
 		four(J,end,"","");
 	}
-	casenum++;
 }
 //£¼ÓÐ·µ»ØÖµº¯Êýµ÷ÓÃÓï¾ä£¾ ::= £¼±êÊ¶·û£¾¡®(¡¯£¼Öµ²ÎÊý±í£¾¡®)¡¯
 void use_valfunc(char func[],char name[])
@@ -953,6 +991,7 @@ void use_voidfunc(char func[])
 //£¼Öµ²ÎÊý±í£¾   ::= £¼±í´ïÊ½£¾{,£¼±í´ïÊ½£¾}£ü£¼¿Õ£¾
 void val_para(char func[],char returnexp[])//µÚ¶þ¸öÊÇµ÷ÓÃµÄ¸Ãº¯ÊýÃû£¬ÓÃÀ´·µ»Ø±í´ïÊ½µÄ
 {
+	
 	char returnreg[STRINGLENGTH]={0};
 	char funcname[STRINGLENGTH]={0};
 	int paranum=0;
@@ -962,8 +1001,10 @@ void val_para(char func[],char returnexp[])//µÚ¶þ¸öÊÇµ÷ÓÃµÄ¸Ãº¯ÊýÃû£¬ÓÃÀ´·µ»Ø±í´
 		funcname[strlen(funcname)-1]=0;
 	}
 	read();
+	fprintf(fa,"addi $fp,$fp,8\n");
 	if(tmp==RPARENT){
 		strcat(returnexp,token);
+		//four(CALL,funcname,"","");
 		return ;
 	}
 	else{
@@ -982,8 +1023,8 @@ void val_para(char func[],char returnexp[])//µÚ¶þ¸öÊÇµ÷ÓÃµÄ¸Ãº¯ÊýÃû£¬ÓÃÀ´·µ»Ø±í´
 	if(tmp==RPARENT){
 		if(returnexp!=NULL)
 			strcat(returnexp,token);
-			}
-	four(CALL,funcname,"","");//////////////////////////////error
+	}
+	//four(CALL,funcname,"","");//ÕâÀïÊÇ´¦Àí±í´ïÊ½Ö®Ç°//////////////////////////////errorµ÷ÓÃÔçÁË
 }
 //£¼Óï¾äÁÐ£¾   ::=£û£¼Óï¾ä£¾£ý
 void statements(char func[]) 

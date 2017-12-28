@@ -37,4 +37,5 @@ void entertablefun(int type,char id[],int paranum,int para1ptr);//name,function 
 int check(char id[], char funid[]);
 int seek(char id[], char funid[]);
 int fp_offset(char func[]);
+int sp_offset(char func[]);
 #endif

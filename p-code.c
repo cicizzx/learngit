@@ -10,14 +10,15 @@
 extern FILE *fa;
 extern FILE *fp;
 extern struct tb table[];
+extern int expchar;
 ptree stack[1024],p;
 struct polish po[1024];
-int stop=-1,potop=-1,o=-1,printf_num=0;//o±£³ÖºÍcÖÐ·ûºÅÒ»ÖÂ¾ÍÐÐ ÓÃÀ´±È½Ï 
+int stop=-1,potop=-1,o=-1,printf_num=0,expnum=0;//o±£³ÖºÍcÖÐ·ûºÅÒ»ÖÂ¾ÍÐÐ ÓÃÀ´±È½Ï 
 char now_func[STRINGLENGTH];
 void four(int type,char d[],char s1[],char s2[])
-{//$8,$9¸ºÔðÈ¡²Ù×÷ÊýÖµ³öÀ´,$10¸ºÔð´æ½á¹û£¬$11¸ºÔðÕÒ½á¹ûµØÖ·
+{//$8,$9¸ºÔðÈ¡²Ù×÷ÊýÖµ³öÀ´,$10¸ºÔð´æ½á¹û£¬$11(ld),$12(st)¸ºÔðÕÒ½á¹ûµØÖ·,$16±£´æº¯Êý·µ»ØÖµ,$17º¯Êý·µ»ØÖµÕ»
 	//error Ìõ¼þÓï¾ä½á¹û½ö´æÔÚÁË¼Ä´æÆ÷10ÀïÃæ
-	int i,j,k;
+	int i,j=0,k;
 	char dst[STRINGLENGTH]={0},src1[STRINGLENGTH]={0},src2[STRINGLENGTH]={0};
 	strcpy(dst,d);
 	strcpy(src1,s1);
@@ -27,31 +28,31 @@ void four(int type,char d[],char s1[],char s2[])
 			printf("ADD %s %s %s\n",dst,src1,src2);
 			fprintf(fa,"add $10,$%d,$%d\n",reg_load_value(src1,8),reg_load_value(src2,9));
 			get_addr(dst);
-			fprintf(fa,"sw $10,0($11)\n");
+			fprintf(fa,"sw $10,0($12)\n");
 			//fprintf(fa,"",);
 			break;
 		case(PSUB):
 			printf("SUB %s %s %s\n",dst,src1,src2);
 			fprintf(fa,"sub $10,$%d,$%d\n",reg_load_value(src1,8),reg_load_value(src2,9));
 			get_addr(dst);
-			fprintf(fa,"sw $10,0($11)\n");
+			fprintf(fa,"sw $10,0($12)\n");
 			break;
 		case(PMUL):
 			printf("MUL %s %s %s\n",dst,src1,src2);
 			fprintf(fa,"mul $10,$%d,$%d\n",reg_load_value(src1,8),reg_load_value(src2,9));
 			get_addr(dst);
-			fprintf(fa,"sw $10,0($11)\n");
+			fprintf(fa,"sw $10,0($12)\n");
 			break;
 		case(PDIV):
 			printf("DIV %s %s %s\n",dst,src1,src2);
 			fprintf(fa,"div $10,$%d,$%d\n",reg_load_value(src1,8),reg_load_value(src2,9));
 			get_addr(dst);
-			fprintf(fa,"sw $10,0($11)\n");
+			fprintf(fa,"sw $10,0($12)\n");
 			break;
 		case(MOV):
 			printf("MOV %s %s\n",dst,src1);
 			get_addr(dst);
-			fprintf(fa,"sw $%d,0($11)\n",reg_load_value(src1,8));
+			fprintf(fa,"sw $%d,0($12)\n",reg_load_value(src1,8));
 			break;
 		case(PEQL):
 			printf("EQL %s %s %s\n",dst,src1,src2);
@@ -91,22 +92,37 @@ void four(int type,char d[],char s1[],char s2[])
 			break;
 		case(PRINTF):
 			printf("PRINTF %s %s\n",dst,src1);
+			
 			if(strcmp(dst,"")!=0){
 				fprintf(fa,"li $v0,4\n");
 				fprintf(fa,"la $a0,String%d\n",printf_num++);
 				fprintf(fa,"syscall\n");
 			}
+			
 			if(strcmp(src1,"")!=0){
-				fprintf(fa,"li $v0,1\n");
-				fprintf(fa,"move $a0 $%d\n",reg_load_value(src1,8));
-				fprintf(fa,"syscall\n");
+
+				if (expchar==1)
+				{
+					fprintf(fa,"li $v0,11\n");
+					fprintf(fa,"move $a0 $%d\n",reg_load_value(src1,8));
+					fprintf(fa,"syscall\n");
+				}
+				else{
+					fprintf(fa,"li $v0,1\n");
+					fprintf(fa,"move $a0 $%d\n",reg_load_value(src1,8));
+					fprintf(fa,"syscall\n");
+				}
+
+				
+
+				
 			}
 			break;
 		case(LABEL):
 			printf("LABEL %s\n",dst);
 			fprintf(fa,"%s:\n",dst);
 			break;
-		case(SCANF):
+		case(SCANF):////////////ÊäÈëÊý×éÔªËØk=notfound
 			printf("SCANF %s %s\n",dst,src1);
 			i=atoi(src1);
 			k=seek(dst,now_func);
@@ -115,29 +131,44 @@ void four(int type,char d[],char s1[],char s2[])
 				fprintf(fa,"li $v0,5\n");
 				fprintf(fa,"syscall\n");
 				get_addr(dst);
-				fprintf(fa,"sw $v0,0($11)\n");
+				fprintf(fa,"sw $v0,0($12)\n");
 			}
 			else if(i==CHARTK&&table[k].length==0){
 				fprintf(fa,"li $v0,12\n");
 				fprintf(fa,"syscall\n");
 				get_addr(dst);
-				fprintf(fa,"sw $v0,0($11)\n");
+				fprintf(fa,"sw $v0,0($12)\n");
 			}
 			else error(SCANF_NOINTONCHAR);
 			break;
-			//spÊÇÕ»¶¥µÚÒ»¸öÔªËØ¡¢fpÊÇÕ»µ××îºóÒ»¸öÔªËØ,v0·µ»ØÖµ fprintf(fa,"");
-		case(CALL)://1¡¢¼ì²éº¯ÊýÀàÐÍ²ÎÊýÀàÐÍ??????2¡¢×°ÔØ²ÎÊý3¡¢×°ÔØ·µ»ØµØÖ·¡¢·µ»ØÖµ4¡¢×ªÒÆ¹ý³Ì
+			//spÊÇÕ»¶¥µÚÒ»¸öÔªËØ¡¢fpÊÇÕ»µ××îºóÒ»¸öÔªËØµÄÏÂÒ»¸ö,s0·µ»ØÖµ fprintf(fa,"");
+		case(CALLEXP)://1¡¢¼ì²éº¯ÊýÀàÐÍ²ÎÊýÀàÐÍ??????2¡¢×°ÔØ²ÎÊý3¡¢×°ÔØ·µ»ØµØÖ·¡¢·µ»ØÖµ4¡¢×ªÒÆ¹ý³Ì
 			printf("CALL %s\n",dst);
-			//strcpy(now_func,dst);
+			fprintf(fa,"addi $17,$17,4\n");
 			fprintf(fa,"jal %s\n",dst);
+			break;
+		case(CALLUSE)://1¡¢¼ì²éº¯ÊýÀàÐÍ²ÎÊýÀàÐÍ??????2¡¢×°ÔØ²ÎÊý3¡¢×°ÔØ·µ»ØµØÖ·¡¢·µ»ØÖµ4¡¢×ªÒÆ¹ý³Ì
+			printf("CALL %s\n",dst);
+			fprintf(fa,"addi $17,$17,4\n");
+			fprintf(fa,"jal %s\n",dst);
+			fprintf(fa,"subi $17,$17,4\n");
 			break;
 		case(RETURN)://
 			printf("RETURN %s\n",dst);
+			fprintf(fa,"move $16,$%d\n",reg_load_value(dst,8));
 			fprintf(fa,"lw $31,0($sp)\n");
-			fprintf(fa,"lw $v0,4($sp)\n");
-			fprintf(fa,"subi $fp,$sp,4 \n");
-			fprintf(fa,"lw $sp,8($sp)\n");
+			fprintf(fa,"move $fp,$sp \n");
+			fprintf(fa,"lw $sp,4($sp)\n");
+			fprintf(fa,"la $12,ret($17)\n");
+			fprintf(fa,"sw $16,0($12)\n");
 			fprintf(fa,"jr $31\n");
+			break;
+			
+		case(STORE)://four(STORE,t->name,tmp,"");
+			printf("store %s %s\n",dst,src1);
+			//printf("storeaddr %s,$12\n",src1);
+			get_addr(src1);
+			fprintf(fa,"sw $%d,0($12)\n",reg_load_value(dst,8));
 			break;
 		/*case(DIV):
 			printf("DIV %s %s %s\n",dst,src1,src2);
@@ -148,19 +179,14 @@ void four(int type,char d[],char s1[],char s2[])
 void get_addr(char var[])
 {
 	int i,j=0,k=0;
-	char name[STRINGLENGTH]={0};
+	char name[STRINGLENGTH]={0},num[STRINGLENGTH]={0};
 
 	if(var[0]=='$'){
 		delfirst(var);
-		/*if (isdigit(var[0]))
-		{
-			i=atoi(var);
-			return i;
-		}*/
 		if(var[0]=='e'){
 			delfirst(var);
 			i=atoi(var);
-			fprintf(fa,"la $11,exp+%d\n",i);
+			fprintf(fa,"la $12,exp+%d\n",i);
 			return ;
 		}
 	}
@@ -168,7 +194,7 @@ void get_addr(char var[])
 	i=seek(var,now_func);
 	if (i==NOTFOUND)
 	{
-		while (chartype(var[j])==LETTER)
+		while (chartype(var[j])==LETTER||chartype(var[j])==DIGIT)
 		{
 			name[j]=var[j++];
 		}
@@ -181,35 +207,65 @@ void get_addr(char var[])
 				error(ARRAY_INFO_LSS0);
 				return ;
 			}
-			while (chartype(var[j])==DIGIT)
-			{
-				k=k*10+var[j++]-'0';
+			if(var[j]=='$'){
+				j++;
+				if(var[j]=='e'){
+					j++;
+					k=0;
+					while (chartype(var[j])==DIGIT)
+					{
+						num[k++]=var[j++];
+					}
+					i=atoi(num);
+					fprintf(fa,"la $12,exp+%d\n",i);
+					fprintf(fa,"lw $12,0($12)\n");
+					fprintf(fa,"mul $12,$12,4\n");
+					i=seek(name,now_func);
+					if (strcmp(table[i].area,"static")==0)
+					{
+						fprintf(fa,"la $12,static+%d($12)\n",table[i].value);
+					}
+					else{
+						fprintf(fa,"add $12,$12,$sp\n");
+						fprintf(fa,"la $12,%d($12)\n",table[i].value);
+					}
+					//fprintf(fa,"lw $%d,0($12)\n",n);
+				}
 			}
-			if (k>table[i].length)
+			else if (chartype(var[j])==DIGIT)
 			{
-				error(ARRAY_OVERFLOW);
-				return ;
-			}
-			else{
-				if (strcmp(table[i].area,"static")==0)
+				k=0;
+				while (chartype(var[j])==DIGIT)
 				{
-					fprintf(fa,"li $11,%d\n",table[i].value+k*4);
+					k=k*10+var[j++]-'0';
+				}
+				if (k>table[i].length)
+				{
+					error(ARRAY_OVERFLOW);
+					return ;
 				}
 				else{
-					fprintf(fa,"la $11,stack+%d\n",table[i].value+k*4);
+					if (strcmp(table[i].area,"static")==0)
+					{
+						fprintf(fa,"la $12,static+%d\n",table[i].value+k*4);
+					}
+					else{
+						fprintf(fa,"la $12,%d($sp)\n",table[i].value+k*4);
+					}
+					//fprintf(fa,"lw $%d,0($12)\n",n);
 				}
-				//fprintf(fa,"lw $%d,0($%d)\n",n,n);
+			
 			}
 		}
 	}
-	else if (table[i].type==SIMPLE_VARIABLE)
+	else if (table[i].type==SIMPLE_VARIABLE||table[i].type==PARAMETER)
 	{
 		if (strcmp(table[i].area,"static")==0)
 		{
-			fprintf(fa,"la $11,static+%d\n",table[i].value);
+			fprintf(fa,"la $12,static+%d\n",table[i].value);
 		}
 		else{
-			fprintf(fa,"la $11,stack+%d\n",table[i].value);
+			fprintf(fa,"la $12,%d($sp)\n",table[i].value);
 		}
 	}
 	else{
@@ -259,17 +315,21 @@ int reg_load_value(char c[],const int n)
 void load_value(char src[],int n,int positive)
 {
 	int i,j=0,k=0;
-	char name[STRINGLENGTH]={0};
+	char name[STRINGLENGTH]={0},num[STRINGLENGTH]={0};
 	i=seek(src,now_func);
+	//printf("load_addr %s,$11\n",src);
 	if(i==NOTFOUND){
-		while (chartype(src[j])==LETTER)
+		while (chartype(src[j])==LETTER||chartype(src[j])==DIGIT)
 		{
 			name[j]=src[j++];
 		}
 		j++;
 		i=seek(name,now_func);
 		if(table[i].type==FUNCTION){
-			fprintf(fa,"move $%d,$v0\n",n);  
+			//fprintf(fa,"move $%d,$16\n",n);
+			fprintf(fa,"la $11,ret($17)\n");
+			fprintf(fa,"addi $17,$17,-4\n");
+			fprintf(fa,"lw $%d,0($11)\n",n);
 		} 
 		else if (table[i].type==ARRAY_VARIABLE)
 		{
@@ -278,35 +338,63 @@ void load_value(char src[],int n,int positive)
 				error(ARRAY_INFO_LSS0);
 				return ;
 			}
-			while (chartype(src[j])==DIGIT)
-			{
-				k=k*10+src[j++]-'0';
+			if(src[j]=='$'){
+				j++;
+				if(src[j]=='e'){
+					j++;
+					k=0;
+					while (chartype(src[j])==DIGIT)
+					{
+						num[k++]=src[j++];
+					}
+					i=atoi(num);
+					fprintf(fa,"la $11,exp+%d\n",i);
+					fprintf(fa,"lw $11,0($11)\n");
+					fprintf(fa,"mul $11,$11,4\n");
+					i=seek(name,now_func);
+					if (strcmp(table[i].area,"static")==0)
+					{
+						fprintf(fa,"la $11,static+%d($11)\n",table[i].value);
+					}
+					else{
+						fprintf(fa,"add $11,$11,$sp\n");
+						fprintf(fa,"la $11,%d($11)\n",table[i].value);
+					}
+					fprintf(fa,"lw $%d,0($11)\n",n);
+				}
 			}
-			if (k>table[i].length)
+			else if (chartype(src[j])==DIGIT)
 			{
-				error(ARRAY_OVERFLOW);
-				return ;
-			}
-			else{
-				if (strcmp(table[i].area,"static")==0)
+				while (chartype(src[j])==DIGIT)
 				{
-					fprintf(fa,"li $11,%d\n",table[i].value+k*4);
+					k=k*10+src[j++]-'0';
+				}
+				if (k>table[i].length)
+				{
+					error(ARRAY_OVERFLOW);
+					return ;
 				}
 				else{
-					fprintf(fa,"la $11,stack+%d\n",table[i].value+k*4);
+					if (strcmp(table[i].area,"static")==0)
+					{
+						fprintf(fa,"la $11,static+%d\n",table[i].value+k*4);
+					}
+					else{
+						fprintf(fa,"la $11,%d($sp)\n",table[i].value+k*4);
+					}
+					fprintf(fa,"lw $%d,0($11)\n",n);
 				}
-				fprintf(fa,"lw $%d,0($11)\n",n);
 			}
 		}
 	}
-	else if (table[i].type==SIMPLE_VARIABLE)
+	else if (table[i].type==SIMPLE_VARIABLE||table[i].type==PARAMETER)
 	{
 		if (strcmp(table[i].area,"static")==0)
 		{
 			fprintf(fa,"la $11,static+%d\n",table[i].value);
 		}
 		else{
-			fprintf(fa,"la $11,stack+%d\n",table[i].value);
+			fprintf(fa,"la $11,%d($sp)\n",table[i].value);
 		}
 		fprintf(fa,"lw $%d,0($11)\n",n);
 
@@ -322,7 +410,8 @@ void load_value(char src[],int n,int positive)
 }
 void load_para(char reg[],int offset)
 {
-	fprintf(fa,"sw $%d,%d($sp)\n",reg_load_value(reg,10),12+offset);
+	fprintf(fa,"sw $%d,%d($fp)\n",reg_load_value(reg,10),0);//offset´Ó0¿ªÊ¼
+	fprintf(fa,"addi $fp,$fp,4\n");
 }
 void delfirst(char src[])
 {
@@ -371,13 +460,11 @@ char* deal_exp(char c[][STRINGLENGTH],int n)//c¸ÄÎª¶þ²ãÊý×é£¬ÐèÒª´æ±êÊ¶·û£¡¸ÄÊä³
 					else{
 						if(ov(last[ltop-1])>=ov(c[i])){
 							strcpy(swap,c[i]);
-							//swap=c[i][0];
 							ltop--;
 							while(ov(last[ltop])>=ov(c[i])){
 								po[++potop].oprator=last[ltop--][0];
 							}
 							strcpy(last[++ltop],swap);
-							//last[++ltop]=swap;
 						}
 						else	po[++potop].oprator=last[ltop--][0];
 					}
@@ -387,14 +474,13 @@ char* deal_exp(char c[][STRINGLENGTH],int n)//c¸ÄÎª¶þ²ãÊý×é£¬ÐèÒª´æ±êÊ¶·û£¡¸ÄÊä³
 	for( ;ltop>-1;ltop--)
 		po[++potop].oprator=last[ltop][0];
 	//½¨¶þ²æÊ÷
-	j=1;
 	for(i=0;i<=potop;i++){
 		if(po[i].oprator<0){//Èç¹ûÊÇ²Ù×÷Êý£¬Ôò½¨Á¢Ò»¸öµ¥½ÚµãÊ÷²¢½«Ö¸ÏòËûµÄÖ¸ÕëÍÆÈëÕ»ÖÐ£» 
 			p=(ptree)malloc(sizeof(tree));
 			strcpy(p->name,po[i].iden);
 			p->parent=p->lchild=p->rchild=NULL;
 			stack[++stop]=p;
-			p->ino=-1;
+			p->ino=4*(expnum++);
 			p->op=-1;
 		}
 		else {//¾Í´ÓÕ»ÖÐµ¯³öÖ¸ÏòÁ½¿ÃÊ÷T1ºÍT2µÄÖ¸Õë£¨T1ÏÈµ¯³ö£©²¢ÐÎ³ÉÒ»¿ÃÐÂÊ÷£¬Ê÷¸ùÎª¸ÃÔËËã·û£¬ËüµÄ×ó¡¢ÓÒ×ÓÊ÷·Ö±ðÖ¸ÏòT2ºÍT1£¬È»ºó½«ÐÂÊ÷µÄÖ¸ÕëÑ¹ÈëÕ»ÖÐ¡£
@@ -402,13 +488,11 @@ char* deal_exp(char c[][STRINGLENGTH],int n)//c¸ÄÎª¶þ²ãÊý×é£¬ÐèÒª´æ±êÊ¶·û£¡¸ÄÊä³
 			p->op=po[i].oprator;
 			stack[stop]->parent=p;
 			p->rchild=stack[stop--];
-			//p->rchild->ino=10;
 			stack[stop]->parent=p;
+			p->ino=4*(expnum++);
 			p->lchild=stack[stop--];
-			//p->lchild->ino=11;
 			p->parent=NULL;
 			stack[++stop]=p;
-			p->ino=4*(j++);
 		}
 	}
 	//j=10;
@@ -480,29 +564,27 @@ char* inorder(ptree t)
 	char tmp[STRINGLENGTH]={0};
 	char inttoa[STRINGLENGTH]={0};
 	strcpy(tmp,"$e");
+	strcat(tmp,itoa(t->ino,inttoa,10));
+	
 	if(t!=NULL){
-		if(t->op>0){
-			strcat(tmp,itoa(t->ino,inttoa,10));
+		if(t->op>0){	
+			strcpy(t->name,tmp);
 			if(t->op=='+'){
 				four(PADD,tmp,inorder(t->lchild),inorder(t->rchild));
-				strcpy(t->name,tmp);
-				//return ;
 			}
 			else if(t->op=='-'){
 				four(PSUB,tmp,inorder(t->lchild),inorder(t->rchild));
-				strcpy(t->name,tmp);
-				//return tmp;
 			}
 			else if(t->op=='*'){
 				four(PMUL,tmp,inorder(t->lchild),inorder(t->rchild));
-				strcpy(t->name,tmp);
-				//return tmp;
 			}
 			else if(t->op=='/'){
 				four(PDIV,tmp,inorder(t->lchild),inorder(t->rchild));
-				strcpy(t->name,tmp);
-				//return tmp;
 			}
+		}
+		else{
+			four(STORE,t->name,tmp,"");
+			strcpy(t->name,tmp);
 		}
 		return t->name;
 }

@@ -1,6 +1,9 @@
 #include"lexical.h" 
 #include"error.h"
 #include<stdio.h>
+#include <stdlib.h>
+#include<string.h>
+#include <ctype.h>
 #define STRINGLENGTH 128
 int line=0,tokennum=0,tmp=0;
 char token[STRINGLENGTH]={0},ch=0;
@@ -14,8 +17,10 @@ int getword()
 	token[tokennum++]=ch;
 	
 	{	while(chartype(token[tokennum-1])==DIGIT||chartype(token[tokennum-1])==LETTER){
-			if(chartype(token[tokennum-1])==LETTER) 
+			if(chartype(token[tokennum-1])==LETTER){ 
 				id=1;
+			}
+			token[tokennum-1]=tolower(token[tokennum-1]);
 			token[tokennum++]=getsym();
 			flag=1;
 			if(tokennum==STRINGLENGTH){
@@ -151,6 +156,7 @@ int getword()
 char getsym()
 {	
 	ch=fgetc(fp);
+
 	return ch;
 }
 
@@ -206,20 +212,20 @@ int symtype()
 
 int keyword()
 {
-	if(strcmp(token,"if")==0)		return IFTK;
-	if(strcmp(token,"printf")==0)	return PRINTFTK;
+	if(stricmp(token,"if")==0)		return IFTK;
+	if(stricmp(token,"printf")==0)	return PRINTFTK;
 	
-	if(strcmp(token,"scanf")==0)	return SCANFTK;
-	if(strcmp(token,"const")==0)	return CONSTTK;
-	if(strcmp(token,"int")==0)		return INTTK;
-	if(strcmp(token,"char")==0)		return CHARTK;
-	if(strcmp(token,"do")==0)		return DOTK;
-	if(strcmp(token,"while")==0)	return WHILETK;
-	if(strcmp(token,"return")==0)	return RETURNTK;
-	if(strcmp(token,"void")==0)		return VOIDTK;
-	if(strcmp(token,"main")==0)		return MAINTK;
-	if(strcmp(token,"switch")==0)	return SWITCHTK;
-	if(strcmp(token,"case")==0)		return CASETK;
+	if(stricmp(token,"scanf")==0)	return SCANFTK;
+	if(stricmp(token,"const")==0)	return CONSTTK;
+	if(stricmp(token,"int")==0)		return INTTK;
+	if(stricmp(token,"char")==0)		return CHARTK;
+	if(stricmp(token,"do")==0)		return DOTK;
+	if(stricmp(token,"while")==0)	return WHILETK;
+	if(stricmp(token,"return")==0)	return RETURNTK;
+	if(stricmp(token,"void")==0)		return VOIDTK;
+	if(stricmp(token,"main")==0)		return MAINTK;
+	if(stricmp(token,"switch")==0)	return SWITCHTK;
+	if(stricmp(token,"case")==0)		return CASETK;
 	
 	return IDEN;
 	//////²é±£Áô×Ö±í////////

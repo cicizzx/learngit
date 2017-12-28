@@ -10,7 +10,7 @@ struct tb table[TMAX];
 
 void entertable(int type,char id[],int value,int kind,char func[])
 {
-	if(seek(id,func)!=NOTFOUND)
+	if(check(id,func)!=NOTFOUND)
 		error(RE_DECLARATION);	
 	table[tptr].type=type;
 	table[tptr].kind=kind;
@@ -32,7 +32,7 @@ void entertable(int type,char id[],int value,int kind,char func[])
 }
 void entertablearray(int type,char id[],int value,int kind,char func[],int length)
 {
-	if(seek(id,func)!=NOTFOUND)
+	if(check(id,func)!=NOTFOUND)
 		error(RE_DECLARATION);
 	
 	table[tptr].type=type;
@@ -46,7 +46,7 @@ void entertablearray(int type,char id[],int value,int kind,char func[],int lengt
 }
 void entertablefun(int type,char id[],int paranum,int para1ptr)
 {
-	if(seek(id,"static")!=NOTFOUND)
+	if(check(id,"static")!=NOTFOUND)
 		error(RE_DECLARATION);
 	
 	ftable[ftptr].type=type;
@@ -59,11 +59,6 @@ void entertablefun(int type,char id[],int paranum,int para1ptr)
 int check(char id[], char funid[])
 {
 	int i;
-	for(i=0;i<ftptr;i++)
-	{
-		if(stricmp(ftable[i].name,id)==0)
-			return i;
-	}
 	for(i=0;i<tptr;i++)
 	{
 		if((stricmp(table[i].name,id)==0)&&((stricmp(table[i].area,funid)==0)))
@@ -74,11 +69,6 @@ int check(char id[], char funid[])
 int seek(char id[], char funid[])
 {
 	int i;
-	/*for(i=0;i<ftptr;i++)
-	{
-		if(stricmp(ftable[i].name,id)==0)
-			return i;
-	}*/
 	for(i=0;i<tptr;i++)
 	{
 		if((stricmp(table[i].name,id)==0)&&((stricmp(table[i].area,funid)==0)))
@@ -94,10 +84,33 @@ int seek(char id[], char funid[])
 
 int fp_offset(char func[])
 {
-	int i,j=8;
+	int i,j=0;
 	for(i=0;i<tptr;i++){
-		if(strcmp(table[i].area,func)==0)
-			j+=4;
+		if(strcmp(table[i].area,func)==0){
+			if (table[i].type==SIMPLE_VARIABLE||table[i].type==PARAMETER)
+			{
+				j+=4;
+			}
+			else if (table[i].type==ARRAY_VARIABLE)
+			{
+				j=j+table[i].length*4;
+			}
+		}
+			
+	}
+	return j;
+}
+int sp_offset(char func[])
+{
+	int i,j=0;
+	for(i=0;i<tptr;i++){
+		if(strcmp(table[i].area,func)==0){
+			if (table[i].type==PARAMETER)
+			{
+				j+=4;
+			}
+		}
+
 	}
 	return j;
 }
