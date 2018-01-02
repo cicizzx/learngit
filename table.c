@@ -7,11 +7,17 @@ int tptr=0;
 int ftptr=0;
 struct funtable ftable[TMAX];
 struct tb table[TMAX];
-
+extern FILE *ft;
 void entertable(int type,char id[],int value,int kind,char func[])
 {
 	if(check(id,func)!=NOTFOUND)
-		error(RE_DECLARATION);	
+		error(RE_DECLARATION);
+	if (tptr==TMAX)
+	{
+		error(FULL_TABLE);
+		return;
+	}
+	fprintf(ft,"------------------name:%s\n",id);
 	table[tptr].type=type;
 	table[tptr].kind=kind;
 	table[tptr].length=0;
@@ -34,7 +40,12 @@ void entertablearray(int type,char id[],int value,int kind,char func[],int lengt
 {
 	if(check(id,func)!=NOTFOUND)
 		error(RE_DECLARATION);
-	
+	if (ftptr==TMAX)
+	{
+		error(FULL_TABLE);
+		return;
+	}
+	fprintf(ft,"------------------name:%s\n",id);
 	table[tptr].type=type;
 	table[tptr].kind=kind;
 	table[tptr].value=value;//address
@@ -46,14 +57,20 @@ void entertablearray(int type,char id[],int value,int kind,char func[],int lengt
 }
 void entertablefun(int type,char id[],int paranum,int para1ptr)
 {
+	int i;
 	if(check(id,"static")!=NOTFOUND)
 		error(RE_DECLARATION);
 	
 	ftable[ftptr].type=type;
 	ftable[ftptr].paranum=paranum;
-	//ftable[ftptr].enterpnum=enter;
 	ftable[ftptr].para1=para1ptr;
 	strcpy(ftable[ftptr].name,id);	
+	/*fprintf(ft,"------------------\n");
+	for (i=0;i<paranum;i++)
+	{
+		fprintf(ft,"para%d:%s\t",i,table[para1ptr+i].kind==INTTK?"int":"char");
+	}
+	fprintf(ft,"\n");*/
 	ftptr++;
 };
 int check(char id[], char funid[])
@@ -62,6 +79,15 @@ int check(char id[], char funid[])
 	for(i=0;i<tptr;i++)
 	{
 		if((stricmp(table[i].name,id)==0)&&((stricmp(table[i].area,funid)==0)))
+			return i;
+	}
+	return NOTFOUND;
+}
+int seekfun(char id[], char funid[]){
+	int i;
+	for (i=0;i<ftptr;i++)
+	{
+		if((stricmp(ftable[i].name,id)==0))
 			return i;
 	}
 	return NOTFOUND;

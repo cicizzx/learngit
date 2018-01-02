@@ -10,6 +10,7 @@
 extern int tokennum,tmp,tptr,text=0;
 extern char token[];
 extern struct tb table[];
+extern struct funtable ftable[];
 extern FILE *fa;
 extern char now_func[];
 extern int expnum;
@@ -61,6 +62,15 @@ void program()
 				def_func(name,type);
 				
 			}
+			else{
+				error(DEF_FUNC_MISS_PARENT);
+				while (tmp!=LPARENT)
+				{
+					read();
+				}
+				def_func(name,type);
+
+			}
 	}
 	}	//ÎÞ·µ»ØÖµº¯Êý 
 	if(tmp==VOIDTK){
@@ -68,7 +78,16 @@ void program()
 				//output(DEF_VOIDFUNC);
 				strcpy(name,token);
 				if(read()==LPARENT)
-						def_func(name,VOIDTK);				
+						def_func(name,VOIDTK);
+				else{
+					error(DEF_FUNC_MISS_PARENT);
+					while (tmp!=LPARENT)
+					{
+						read();
+					}
+					def_func(name,type);
+
+				}
 			}
 			//Ö÷º¯Êý 
 			else if(keyword()==MAINTK){
@@ -76,7 +95,32 @@ void program()
 				main_func();
 				if(read()!=EOFFILE)
 					error(CODE_AFTER_MAIN);
-			}   
+			} 
+			else{
+				error(DEF_FUNC_MISS_NAME);
+				while (read()==IDEN);
+				if(keyword()!=MAINTK){
+					strcpy(name,token);
+					if(read()==LPARENT)
+						def_func(name,VOIDTK);	
+					else{
+						error(DEF_FUNC_MISS_PARENT);
+						while (tmp!=LPARENT)
+						{
+							read();
+						}
+						def_func(name,type);
+
+					}
+				}
+				//Ö÷º¯Êý 
+				else if(keyword()==MAINTK){
+					//output(MAIN_FUNC);
+					main_func();
+					if(read()!=EOFFILE)
+						error(CODE_AFTER_MAIN);
+				} 
+			}
 		} 
 	}
 	
@@ -86,8 +130,6 @@ void program()
 void var_or_func()
 {
 	char name[STRINGLENGTH];
-	int length;
-
 	int isint=(tmp==INTTK);
 		read();
 		if(tmp==IDEN){
@@ -123,7 +165,7 @@ void var_or_func()
 										if(read()==IDEN){
 											strcpy(name,token);											
 											read();
-											if(token[0]==','){
+											if(token[0]==','||token[0]==';'){
 												if(check(name,all)==NOTFOUND) {
 													entertable(SIMPLE_VARIABLE,name,offset,(isint?INTTK:CHARTK),all);
 													offset=offset+4;
@@ -180,7 +222,7 @@ void var_or_func()
 								if(read()==IDEN){
 									strcpy(name,token);
 									read();
-									if(token[0]==','){
+									if(token[0]==','||token[0]==';'){
 										if(check(name,all)==NOTFOUND) {
 											entertable(SIMPLE_VARIABLE,name,offset,(isint?INTTK:CHARTK),all);
 											offset=offset+4;
@@ -234,6 +276,13 @@ void var_or_func()
 				}
 				//read();//maybe error 
 			}
+			else{
+				error(WRONG_DEFINITION);
+				while (tmp!=SEMICN)
+				{
+					read();
+				}
+			}
 		} 
 } 
 // £¼³£Á¿ËµÃ÷£¾ ::=  const£¼³£Á¿¶¨Òå£¾;{ const£¼³£Á¿¶¨Òå£¾;}
@@ -244,6 +293,10 @@ void const_state(char area[])
 		def_const(area);
 		if(token[0]!=';'){
 			error(MISSING_SEMICN);
+			while (read()!=SEMICN)
+			{
+				;
+			}
 		}
 		read();
 	}while(keyword()==CONSTTK);
@@ -271,6 +324,14 @@ void def_const(char area[])
 					read(); //µ¥²½½øÈë 
 				}
 			}
+			else{
+				error(CONST_DEF_MISS_IDEN);
+				while (read()!=SEMICN)
+				{
+					;
+				}
+
+			}
 		}while(token[0]==',');		
 	}
 	else if(keyword()==CHARTK){
@@ -289,6 +350,14 @@ void def_const(char area[])
 						
 					}
 				}
+			}
+			else{
+				error(CONST_DEF_MISS_IDEN);
+				while (read()!=SEMICN)
+				{
+					;
+				}
+
 			}
 		}while(token[0]==',');
 		
@@ -358,6 +427,14 @@ void def_const(char area[])
 					}
 				}
 	}
+	else{
+		error(CONST_DEF_ERROR);
+		while (read()!=SEMICN)
+		{
+			;
+		}
+
+	}
 }
 //£¼ÕûÊý£¾        ::= £Û£«£ü£­£Ý£¼ÎÞ·ûºÅÕûÊý£¾£ü£°
 int integer()
@@ -377,6 +454,9 @@ int integer()
 	}
 	else if(tmp==INTCON){
 		return 1;
+	}
+	else{
+		error(INT_WRONG);
 	}
 	return 0;
 }
@@ -447,12 +527,18 @@ void def_var(char area[],int *offfun)
 			} 
 		}while(token[0]==',');
 	}
-	
+	else{
+		error(VAR_KIND_ERROR);
+		while (read()!=SEMICN)
+		{
+			;
+		}
+	}
 }
 //£¼ÎÞ¡¢ÓÐ·µ»ØÖµº¯Êý¶¨Òå£¾  ::=  £¼ÉùÃ÷Í·²¿£¾¡®(¡¯£¼²ÎÊý±í£¾¡®)¡¯ ¡®{¡¯£¼¸´ºÏÓï¾ä£¾¡®}¡¯
 void def_func(char name[],int type) 
 {
-	int para1=tptr+1;
+	int para1=tptr;
 	int offfun=8;
 	int paranum=para_table(name,&offfun);	
 	strcpy(now_func,name);
@@ -480,6 +566,11 @@ void def_func(char name[],int type)
 	}
 	else{
 		error(RE_DECLARATION);
+		while (read()!=RBRACE)
+		{
+			;
+		}
+		return;
 	} 
 	
 	if(token[0]==')'){
@@ -487,7 +578,36 @@ void def_func(char name[],int type)
 		if(token[0]=='{'){
 			com_state(name,&offfun);
 		}
-		if(read()==RBRACE)	;
+		else{
+			error(FUNC_MISS_LBRACE);
+			while (read()!=SEMICN)
+			{
+				;
+			}
+			com_state(name,&offfun);
+		}
+		if(tmp==RBRACE)	read();
+		else{
+			error(FUNC_MISS_RBRACE);
+		}
+	}
+	else{
+		error(PARA_TABLE_MISS_RPARENT);
+		if(token[0]=='{'){
+			com_state(name,&offfun);
+		}
+		else{
+			error(FUNC_MISS_LBRACE);
+			while (read()!=SEMICN)
+			{
+				;
+			}
+			com_state(name,&offfun);
+		}
+		if(tmp==RBRACE)	read();
+		else{
+			error(FUNC_MISS_RBRACE);
+		}
 	}
 	four(RETURN,"","","");
 	//over
@@ -524,7 +644,8 @@ int para_table(char func[],int *offfun)
 			if(tmp==IDEN){
 				if(check(token,func)==NOTFOUND){
 					entertable(PARAMETER,token,*offfun,type,func);
-					(*offfun)+=4;}
+					(*offfun)+=4;
+				}
 				else{
 					error(RE_DECLARATION);
 				} 
@@ -532,7 +653,26 @@ int para_table(char func[],int *offfun)
 				num++;
 				read();
 			}
+			else{
+				error(PARA_MISS_IDEN);
+				while (tmp!=COMMA&&tmp!=RPARENT)
+				{
+					read();
+				}
+			}
 		}
+		else if (tmp==RPARENT)
+		{
+			;
+		}
+		else{
+			error(PARA_KIND_ERROR);
+			while (tmp!=COMMA&&tmp!=RPARENT)
+			{
+				read();
+			}
+		}
+
 	}while(token[0]==',');
 	return num;
 }
@@ -546,9 +686,32 @@ void main_func()
 		if(read()==RPARENT){
 			if(read()==LBRACE){
 				com_state(now_func,&offfun);
-				//poptable("main");
+			}
+			else{
+				error(FUNC_MISS_LBRACE);
+				while (read()!=SEMICN)
+				{
+					;
+				}
+				com_state(now_func,&offfun);
 			}
 		}
+		else{
+			error(DEF_FUNC_MISS_PARENT);
+			while (tmp!=LBRACE)
+			{
+				read();
+			}
+			com_state(now_func,&offfun);
+		}
+	}
+	else{
+		error(DEF_FUNC_MISS_PARENT);
+		while (tmp!=LBRACE)
+		{
+			read();
+		}
+		com_state(now_func,&offfun);
 	}
 	four(RETURN,"","","");
 }
@@ -602,14 +765,15 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 			if((i=seek(token,func))!=NOTFOUND)
 				;
 			else error(WITHOUT_DECLARATION);
-			if(table[i].kind==INTTK&&expchar==1){
-				expchar=0;
-			}
+			
 			strcpy(name,token);
 			strcpy(funcname,token);
 			read();
 			
 			if(tmp==LBRACK){//£¼±êÊ¶·û£¾¡®[¡¯£¼±í´ïÊ½£¾¡®]¡¯
+				if(table[i].kind==INTTK&&expchar==1){
+					expchar=0;
+				}
 				strcat(name,token); 
 				read();
 				t=expchar;
@@ -626,10 +790,14 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 						}
 			}
 			else if(tmp==LPARENT) {//£¼ÓÐ·µ»ØÖµº¯Êýµ÷ÓÃÓï¾ä£¾
+				i=seekfun(name,func);
+				if(ftable[i].type==INTTK&&expchar==1){
+					expchar=0;
+				}
 				strcat(name,token);//×îºó¶àcopyÁËÒ»¸ö¡®£¨¡¯
 				t=expchar;
 				val_para(func,name);//yes
-				name[strlen(name)-2]=0;
+				//name[strlen(name)-2]=0;
 				four(CALLEXP,funcname,"","");
 				expchar=t;
 				if(tmp==RPARENT)	{
@@ -640,6 +808,9 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 				else error(WRONG_EXPRESSION);
 			}
 			else{//iden
+				if(table[i].kind==INTTK&&expchar==1){
+					expchar=0;
+				}
 				strcat(exp[(*e)++],name);
 				strcpy(exp[(*e)++],token);
 				if(tmp==SEMICN||tmp==RPARENT||tmp==COMMA||tmp==RBRACK||(tmp>=EQL&&tmp<=NEQ))
@@ -680,9 +851,9 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 			strcpy(exp[(*e)++],token);
 			break;
 		case(CHARCON):
-			if(expchar==1){
+			/*if(expchar==1){
 				expchar=0;
-			}
+			}*/
 			strcpy(exp[(*e)++],token);
 			read();
 			strcpy(exp[(*e)++],token);
@@ -710,7 +881,7 @@ int factor(char func[],char exp[][STRINGLENGTH],int *e)
 			break;
 		default:
 			error(WRONG_EXPRESSION);
-			read();
+			//read();
 			return 1;
 	}
 	return 0;
@@ -763,6 +934,11 @@ void statement(char func[])
 		case(SEMICN):
 			//output(EMPTY);
 			break;
+		default: error(WRONG_STATEMENT);
+			while (tmp!=SEMICN)
+			{
+				read();
+			}
 	}
 }
 //£¼¸³ÖµÓï¾ä£¾   ::=  £¼±êÊ¶·û£¾£½£¼±í´ïÊ½£¾|£¼±êÊ¶·û£¾¡®[¡¯£¼±í´ïÊ½£¾¡®]¡¯=£¼±í´ïÊ½£¾
@@ -803,6 +979,14 @@ void assignment(char func[],char name[])
 			return;
 		}
 	}
+	else{
+		error(ASSIGN_ERROR);
+		while (tmp!=SEMICN)
+		{
+			read();
+		}
+		return;
+	}
 	four(MOV,name,src,"");
 	if(tmp==SEMICN)
 				;
@@ -825,6 +1009,10 @@ void if_state(char func[])
 	}
 	else{
 			error(PARENT_DISMATCH);
+			while (tmp!=SEMICN)
+			{
+				read();
+			}
 			return;
 		}
 }
@@ -864,11 +1052,23 @@ void condition(char func[],char end[],char start[])
 			case (GEQ):
 				four(PGEQ,"$10",src1,src2);
 				break;
+			default:error(CONDITION_ERROR);
+				while (tmp!=RPARENT)
+				{
+					read();
+				}
 		}
 	}
 	else if (tmp==RPARENT)
 	{
 		four(PNEQ,"$10",src1,"0");
+	}
+	else{
+		error(CONDITION_ERROR);
+		while (tmp!=SEMICN)
+		{
+			read();
+		}
 	}
 	if(tmp==RPARENT){
 		four(BEQ,end,"$10",zero);
@@ -890,26 +1090,45 @@ void do_while(char func[])
 			if(read()==LPARENT){
 				condition(func,labelname("doEnd",a),labelname("doStart",a));
 			}
+			else{
+				error(DO_WHILE_ERROR);
+				while (tmp!=SEMICN)
+				{
+					read();
+				}
+			}
+		}
+		else{
+			error(DO_WHILE_ERROR);
+			while (tmp!=SEMICN)
+			{
+				read();
+			}
+			return;
 		}
 	}
 	four(LABEL,labelname("doEnd",a),"","");
 }
 //£¼³£Á¿£¾   ::=  £¼ÕûÊý£¾|£¼×Ö·û£¾ 
-char* constant()
+void constant(char con[])
 {
-	char con[STRINGLENGTH];
 	read();
 	strcpy(con,token);
 	if(tmp==PLUS||tmp==MINUS){
 		if(read()==INTCON){
 			strcat(con,token);
 		}
+		else{
+			error(INT_WRONG);
+		}
 	}
 	if(tmp==INTCON)	;
 	else if(tmp==CHARCON){
 		;
 	}
-	return con;
+	else{
+		error(CONSTANT_ERROR);
+	}
 }
 //£¼Çé¿öÓï¾ä£¾  ::=  switch ¡®(¡¯£¼±í´ïÊ½£¾¡®)¡¯ ¡®{¡¯£¼Çé¿ö±í£¾ ¡®}¡¯
 void switch_state(char func[])
@@ -920,12 +1139,36 @@ void switch_state(char func[])
 	if(read()==LPARENT){
 		read();
 		strcpy(exp,expression(func));
-		if(tmp==RPARENT&&read()==LBRACE){
-			case_list(func,exp,labelname("switchEnd",a));
+		if(tmp==RPARENT){
+			if (read()==LBRACE)
+			{
+				case_list(func,exp,labelname("switchEnd",a));
+			}
+			else{
+				error(BRACK_DISMATCH);
+				case_list(func,exp,labelname("switchEnd",a));
+
+			}
+		}
+		else{
+			error(PARENT_DISMATCH);
+			if (tmp==LBRACE)
+			{
+				case_list(func,exp,labelname("switchEnd",a));
+			}
+			else{
+				error(BRACK_DISMATCH);
+				case_list(func,exp,labelname("switchEnd",a));
+
+			}
 		}
 	}
 	else{
 			error(PARENT_DISMATCH);
+			while (tmp!=SEMICN)
+			{
+				read();
+			}
 			return;
 		}
 	itoa(casenum++,b,10);
@@ -941,6 +1184,22 @@ void case_list(char func[],char exp[],char end[])
 		}while(read()==CASETK);
 		if(tmp==RBRACE)
 			;
+		else{
+			error(BRACK_DISMATCH);
+			while (tmp!=SEMICN)
+			{
+				read();
+			}
+			return;
+		}
+	}
+	else{
+		error(MISS_CASE);
+		while (tmp!=SEMICN)
+		{
+			read();
+		}
+		return;
 	}
 }
 //£¼Çé¿ö×ÓÓï¾ä£¾  ::=  case£¼³£Á¿£¾£º£¼Óï¾ä£¾
@@ -950,13 +1209,21 @@ void case_state(char func[],char exp[],char end[])
 	char a[STRINGLENGTH]={0},b[STRINGLENGTH];
 	itoa(casenum++,a,10);
 	four(LABEL,labelname("case",a),"","");
-	strcpy(con,constant());
+	constant(con);
 	itoa(casenum,b,10);
 	four(BNE,labelname("case",b),con,exp);
 	if(read()==COLON){
 		read();
 		statement(func);
 		four(J,end,"","");
+	}
+	else{
+		error(MISS_CASE);
+		while (tmp!=SEMICN)
+		{
+			read();
+		}
+		return;
 	}
 }
 //£¼ÓÐ·µ»ØÖµº¯Êýµ÷ÓÃÓï¾ä£¾ ::= £¼±êÊ¶·û£¾¡®(¡¯£¼Öµ²ÎÊý±í£¾¡®)¡¯
@@ -965,6 +1232,10 @@ void use_valfunc(char func[],char name[])
 	if(tmp==LPARENT){
 			val_para(func,name);
 		}
+	else{
+		error(PARENT_DISMATCH);
+		val_para(func,name);
+	}
 	if(read()==SEMICN||tmp==MULT||tmp==DIV||tmp==PLUS||tmp==MINUS||tmp==RPARENT||tmp==RBRACK)
 				strcat(name,token);
 
@@ -981,6 +1252,10 @@ void use_voidfunc(char func[])
 		if(read()==LPARENT){
 			val_para(func,name);
 		}
+		else{
+			error(PARENT_DISMATCH);
+			val_para(func,name);
+		}
 	}
 	if(read()==SEMICN)
 				;
@@ -994,12 +1269,13 @@ void val_para(char func[],char returnexp[])//µÚ¶þ¸öÊÇµ÷ÓÃµÄ¸Ãº¯ÊýÃû£¬ÓÃÀ´·µ»Ø±í´
 	
 	char returnreg[STRINGLENGTH]={0};
 	char funcname[STRINGLENGTH]={0};
-	int paranum=0;
+	int paranum=0,i;
 	strcpy(funcname,returnexp);
 	if (funcname[strlen(funcname)-1]=='(')
 	{
 		funcname[strlen(funcname)-1]=0;
 	}
+	i=seekfun(funcname,"static");
 	read();
 	fprintf(fa,"addi $fp,$fp,8\n");
 	if(tmp==RPARENT){
@@ -1009,20 +1285,36 @@ void val_para(char func[],char returnexp[])//µÚ¶þ¸öÊÇµ÷ÓÃµÄ¸Ãº¯ÊýÃû£¬ÓÃÀ´·µ»Ø±í´
 	}
 	else{
 		strcpy(returnreg,expression(func));
+		if ((expchar==1&&table[ftable[i].para1+paranum].kind==INTTK)||(expchar==0&&table[ftable[i].para1+paranum].kind==CHARTK))
+		{
+			error(WRONG_PARA_KIND);
+		}
 		load_para(returnreg,paranum*4);
 		strcat(returnexp,returnreg);
 		paranum++;
 	}
 	while(tmp==COMMA){
+		strcat(returnexp,token);
 		read();
 		strcpy(returnreg,expression(func));
+		if ((expchar==1&&table[ftable[i].para1+paranum].kind==INTTK)||(expchar==0&&table[ftable[i].para1+paranum].kind==CHARTK))
+		{
+			error(WRONG_PARA_KIND);
+		}
 		load_para(returnreg,paranum*4);
 		strcat(returnexp,returnreg);
 		paranum++;
 	}
+	if (paranum!=ftable[i].paranum)
+	{
+		error(WRONG_PARA_NUM);
+	}
 	if(tmp==RPARENT){
 		if(returnexp!=NULL)
 			strcat(returnexp,token);
+	}
+	else{
+		error(PARENT_DISMATCH);
 	}
 	//four(CALL,funcname,"","");//ÕâÀïÊÇ´¦Àí±í´ïÊ½Ö®Ç°//////////////////////////////errorµ÷ÓÃÔçÁË
 }
@@ -1044,15 +1336,31 @@ void scanf_state(char func[])
 			do{
 				if(read()==IDEN){
 					int i;
-					if((i=seek(token,func))==NOTFOUND)	error(WITHOUT_DECLARATION);
+					if((i=seek(token,func))==NOTFOUND)	error(WITHOUT_DECLARATION);///////////////±êÊ¶·ûºÍ
 					else{
 						four(SCANF,token,itoa(table[i].kind,debug,10),"");
 						read();
 				}
 				}
+				else{
+					error(SCANF_MISS_IDEN);
+					while (tmp!=SEMICN)
+					{
+						read();
+					}
+					return;
+				}
 			}while(tmp==COMMA);
 			if(tmp==RPARENT){
 				;
+			}
+			else{
+				error(PARENT_DISMATCH);
+				while (tmp!=SEMICN)
+				{
+					read();
+				}
+				return;
 			}
 		}
 		else{
@@ -1090,6 +1398,14 @@ void printf_state(char func[])
 							}
 						}
 					}
+					else{
+						error(PRINTF_ERROR);
+						while (tmp!=SEMICN)
+						{
+							read();
+						}
+						return;
+					}
 					}
 				if(tmp==PLUS||tmp==MINUS||tmp==IDEN||tmp==INTCON||tmp==CHARCON||tmp==LPARENT){
 					four(PRINTF,"",expression(func),"");
@@ -1117,12 +1433,17 @@ void printf_state(char func[])
 void return_state(char func[])
 {
 	//output(RETURN_STATE);
+	int i=seekfun(func,"static");
 	if(tmp==RETURNTK){
 		read();
 		if(tmp==LPARENT){
 			read();
 			if(tmp==PLUS||tmp==MINUS||tmp==IDEN||tmp==INTCON||tmp==CHARCON||tmp==LPARENT){
 				four(RETURN,expression(func),"","");
+				if (ftable[i].type==CHARTK&&expchar==0)
+				{
+					error(RETURN_WRONG_TYPE);
+				}
 				if(tmp==RPARENT){
 					read();//
 					if(tmp==SEMICN){
@@ -1131,6 +1452,14 @@ void return_state(char func[])
 					else{
 						error(MISSING_SEMICN);
 					}
+				}
+				else{
+					error(PARENT_DISMATCH);
+					while (tmp!=SEMICN)
+					{
+						read();
+					}
+					return;
 				}
 			}
 			if(tmp==SEMICN){
@@ -1142,6 +1471,10 @@ void return_state(char func[])
 		}
 		else if(tmp==SEMICN){
 			four(RETURN,"","","");
+			if (ftable[i].type==CHARTK||ftable[i].type==INTTK)
+			{
+				error(RETURN_WRONG_TYPE);
+			}
 		}
 		else{
 			error(MISSING_SEMICN);

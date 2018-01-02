@@ -5,11 +5,14 @@
 #include "pcode.h"
 FILE *fp=NULL;
 FILE *fa=NULL;
+FILE *fe=NULL;
+FILE *ft=NULL;
 int main()
 {
 	char path[STRINGLENGTH]={0},out[STRINGLENGTH]={0};
-
-	/*printf("please input path£º\n");
+	fe=fopen("error.txt","w");	
+	ft=fopen("table.txt","w");
+	printf("please input path£º\n");
 	gets(path);
 	
 	while((fp=fopen(path,"r"))==NULL)
@@ -17,9 +20,8 @@ int main()
 		printf("Can not find the file, please re-input£º\n");
 		gets(path);
 	}
-	fpre_printf=fopen(path,"r");
-
-	printf("please output path£º\n");
+	
+	/*printf("please output path£º\n");
 	gets(out);
 
 	while((fa=fopen(out,"w"))==NULL)
@@ -28,7 +30,7 @@ int main()
 	gets(out);
 	}*/
 	
-	fp=fopen("a.txt","r");
+	//fp=fopen("a.txt","r");
 	fa=fopen("res.asm","w");
 
 	pre_printf();

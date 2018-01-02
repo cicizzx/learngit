@@ -1,7 +1,7 @@
 #ifndef TABLE_H
 #define TABLE_H
 #define COMPARAMETERSNUMBER 10
-#define TMAX 128
+#define TMAX 512
 #define STRINGLENGTH 128
 enum tablename{
 	NOTFOUND=-1,
@@ -36,6 +36,7 @@ void entertablearray(int type,char id[],int value,int kind,char func[],int lengt
 void entertablefun(int type,char id[],int paranum,int para1ptr);//name,function var...,area
 int check(char id[], char funid[]);
 int seek(char id[], char funid[]);
+int seekfun(char id[], char funid[]);
 int fp_offset(char func[]);
 int sp_offset(char func[]);
 #endif
